@@ -21,8 +21,6 @@ typedef struct Clock {
 
 
 
-
-
 int max (int a, int b) {
    int max_number = a;
    if (b > a) {
@@ -33,31 +31,31 @@ int max (int a, int b) {
 
 MPI_Datatype clock_type;
 
+
+void PrintEventState(int pid, Clock *clock) {
+   printf("Process: %d, Clock: (%d, %d, %d)\n", pid, clock->p[0], clock->p[1], clock->p[2]);
+}
+
 void Event(int pid, Clock *clock){
    clock->p[pid]++;   
+   PrintEventState(pid,clock);
 }
 
 
 void Send(int s_pid, int r_pid, Clock *clock){
-   Clock sd_clock;
-   sd_clock.p[0] = clock->p[0];
-   sd_clock.p[1] = clock->p[1];
-   sd_clock.p[2] = clock->p[2];
- 
+   Event(s_pid,clock);
    MPI_Send(clock, 1, clock_type, r_pid, 0, MPI_COMM_WORLD);
-   
-
+   PrintEventState(s_pid,clock);
 }
 
 void Receive(int s_pid, int r_pid, Clock *clock){
+   Event(r_pid,clock);
    Clock rcv_clock;
    MPI_Recv(&rcv_clock,1, clock_type, s_pid, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
    clock->p[0] = max(clock->p[0], rcv_clock.p[0]);
    clock->p[1] = max(clock->p[1], rcv_clock.p[1]);
    clock->p[2] = max(clock->p[2], rcv_clock.p[2]);
-
-
-   
+   PrintEventState(r_pid,clock);
 }
 
 
@@ -66,84 +64,62 @@ void Receive(int s_pid, int r_pid, Clock *clock){
 void process0(){
     Clock clock = {{0,0,0}} ;
 
-   
-   // um evento ocorre, mas o processo 0 não envia ou recebe
+   // evento interno ocorre
    Event(0,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 0, clock.p[0], clock.p[1], clock.p[2]);
    
    // envia mensagem para o processo 1
-   Event(0,&clock);
    Send(0,1,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 0, clock.p[0], clock.p[1], clock.p[2]);
    
    // recebe mensagem do processo 1
-   Event(0,&clock);
    Receive(1,0,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 0, clock.p[0], clock.p[1], clock.p[2]);
    
    // envia mensagem para o processo 2
-   Event(0,&clock);
    Send(0,2,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 0, clock.p[0], clock.p[1], clock.p[2]);
    
    // recebe mensagem do processo 2
-   Event(0,&clock);
    Receive(2,0,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 0, clock.p[0], clock.p[1], clock.p[2]);
    
    // envia mensagem para o processo 1
-   Event(0,&clock);
    Send(0,1,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 0, clock.p[0], clock.p[1], clock.p[2]);
    
-   // evento ocorre
+   // evento interno ocorre
    Event(0,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 0, clock.p[0], clock.p[1], clock.p[2]);
 
 }
 
 // Representa o processo de rank 1
 void process1(){
-    Clock clock = {{0,0,0}};
-
+   
    // inicia com relogio vazio
+   Clock clock = {{0,0,0}};
    
    // envia mensagem para o processo 0
-   Event(1,&clock);
    Send(1,0,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 1, clock.p[0], clock.p[1], clock.p[2]);
    
    // recebe mensagem do processo 0
-   Event(1,&clock);
    Receive(0,1,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 1, clock.p[0], clock.p[1], clock.p[2]);
    
    // recebe mensagem do processo 0
-   Event(1,&clock);
    Receive(0,1,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 1, clock.p[0], clock.p[1], clock.p[2]);
    
    
 }
 
 // Representa o processo de rank 2
 void process2(){
-    Clock clock = {{0,0,0}} ;
-   // inicia com relogio vazio
    
-   // evento ocorre
+   // inicia com relogio vazio
+   Clock clock = {{0,0,0}} ;
+   
+   
+   // evento interno ocorre
    Event(2,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 2, clock.p[0], clock.p[1], clock.p[2]);
    
    // envia mensagem para o processo 0
-   Event(2,&clock);
    Send(2,0,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 2, clock.p[0], clock.p[1], clock.p[2]);
    
    // recebe mensagem do processo 0
-   Event(2,&clock);
    Receive(0,2,&clock);
-   printf("Process: %d, Clock: (%d, %d, %d)\n", 2, clock.p[0], clock.p[1], clock.p[2]);
    
    
    
